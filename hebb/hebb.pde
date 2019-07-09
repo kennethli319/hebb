@@ -1,14 +1,18 @@
 // Import library
+// TODO: NEED TO INSTALL
+import java.io.*; 
 import java.util.*; 
-// NEED TO INSTALL
+
 import processing.sound.*;
 import java.util.Random; 
 import java.util.ArrayList;
+import java.util.Collections;
 
 // Public Variables
 float rectX, rectY;      // Position of square button
 float circleX, circleY;  // Position of circle button
-int rectSize = 80 ;     // Diameter of rect
+// TODO: Change the size accordingly 
+int rectSize = 120 ;     // Diameter of rect
 int circleSize = rectSize;   // Diameter of circle
 
 int option = 0;
@@ -22,6 +26,8 @@ String[] word_data = new String[71];
 
 int[] ans = new int[number];
 int[] tar_ans = new int[number];
+int[] show_list = new int[number];
+int[] repeat_list = new int[number];
 float[] r_time = new float[number];
 int[] clicked_list = new int[number];
 int i = 0;
@@ -42,10 +48,16 @@ boolean reset_level = true;
 int mil;
 int p_mil = 0;
 
-PFont f;
+//PFont f;
 Table table;
 PImage img;
 SoundFile file;
+    
+PrintWriter output;  
+
+String filename = "test";
+    
+ArrayList<Integer> myNumbers = new ArrayList<Integer>();
 
 void select_ran(int num) {
     int size = data_total-1;
@@ -56,20 +68,51 @@ void select_ran(int num) {
     }
 
     Random rand = new Random();
+
+    if (stage_num == 2 && myNumbers.contains(trial_num)) {
+      
+      tar_ans = repeat_list; 
     
-    int p = 0;
+    } else {
+      
+      int p = 0;
+      
+      while(p < num) {
+          int index = rand.nextInt(list.size());
+          tar_ans[p] = list.remove(index);
+          p+=1;
+      }
+      
+    }
     
-    while(p < num) {
-        int index = rand.nextInt(list.size());
-        tar_ans[p] = list.remove(index);
-        p+=1;
+    if (stage_num == 2 && trial_num == 1){
+       repeat_list = tar_ans;
+    }
+    
+    show_list = tar_ans.clone();
+    shuffleArray(show_list);
+        
+}
+
+private static void shuffleArray(int[] array)
+{
+    int index, temp;
+    Random random = new Random();
+    for (int i = array.length - 1; i > 0; i--)
+    {
+        index = random.nextInt(i + 1);
+        temp = array[index];
+        array[index] = array[i];
+        array[i] = temp;
     }
 }
 
 void setup() {
   
-  fullScreen();
-  //size(1024,512);
+  output = createWriter(filename + "_log.txt");
+  
+  //fullScreen();
+  size(1200,400);
   background(255);
   rectColor = color(0);
   rectHighlight = color(51);
@@ -77,8 +120,13 @@ void setup() {
   circleHighlight = color(204);
   baseColor = color(102);
   currentColor = baseColor;
-  f = createFont("Arial",16); // Arial, 16 point
+  //f = createFont("Arial",16); // Arial, 16 point
   ellipseMode(CENTER);
+  
+  myNumbers.add(4);
+  myNumbers.add(7);
+  myNumbers.add(10);
+  myNumbers.add(13);
   
   circleX = width/2-rectSize/2-float(number)/2.0*(rectSize/5+rectSize);
   circleY = height/5*4-rectSize/2;
@@ -98,11 +146,13 @@ void setup() {
     rectX += (20+rectSize);
   }
   
-  System.out.println("--------- Stage 0: Reading data ---------");
+  println("--------- Stage 0: Reading data ---------");
+  output.println("--------- Stage 0: Reading data ---------");
   
   table = loadTable("datapath.csv", "header");
 
-  println(table.getRowCount() + " total rows in table"); 
+  println(table.getRowCount() + " total rows in table");
+  output.println(table.getRowCount() + " total rows in table");
   
   data_total = table.getRowCount();
   
@@ -118,12 +168,14 @@ void setup() {
     pic_data[idx] = pic;
     word_data[idx] = word;
     
-    println(word + "(" + idx + "): " + wav + " " + pic);
+    //println(word + "(" + idx + "): " + wav + " " + pic);
+    //output.println(word + "(" + idx + "): " + wav + " " + pic);
     
     idx += 1;
   }
   
   System.out.println("--------- Stage 1: Start word span test ---------");
+  output.println("--------- Stage 1: Start word span test ---------");
   
   select_ran(number);
   
@@ -145,9 +197,9 @@ void play_audio(){
         file.play();
         
         delay(1000);
-        
       }
-    
+      mil = millis();
+      p_mil = mil;
       reset_level = false;
     }
 }
@@ -164,45 +216,72 @@ void restart_level(){
     // Print level infomation
     
     System.out.println("level: " + number);
+    output.println("level: " + number);
     
     System.out.println("trial_num: " + trial_num);
+    output.println("trial_num: " + trial_num);
         
     accuracy = 0.0;
     
     for (int m = 0; m < ans.length; m++){
-       if (tar_ans[m] == tar_ans[ans[m]-1]){
+       if (tar_ans[m] == show_list[ans[m]-1]){
          accuracy += 1.0 / float(ans.length) * 100.0;
       }
     }
         
     System.out.println("accuracy: " + accuracy);
+    output.println("accuracy: " + accuracy);
     
     System.out.print("tar_ans:\t");
+    output.print("tar_ans:\t");
     for (int k =0; k< number; k++){
-       System.out.print(tar_ans[k] + " ");
+       System.out.print(word_data[tar_ans[k]] + " ");
+       output.print(word_data[tar_ans[k]] + " ");
     }
     
     System.out.println();
+    output.println();
+    
+    System.out.print("show_list:\t");
+    output.print("show_list:\t");
+    for (int k =0; k< number; k++){
+       System.out.print(word_data[show_list[k]] + " ");
+       output.print(word_data[show_list[k]] + " ");
+    }
+    
+    System.out.println();
+    output.println();
     
     System.out.print("ans:\t");
+    output.print("ans:\t");
     for (int k =0; k< number; k++){
-       System.out.print(tar_ans[ans[k]-1] + " ");
+       System.out.print(word_data[show_list[ans[k]-1]] + " ");
+       output.print(word_data[show_list[ans[k]-1]] + " ");
     }
     System.out.println();
+    output.println();
 
     System.out.print("r_time(in ms): ");
+    output.print("r_time(in ms): ");
     for (int k =0; k< number; k++){
        System.out.print(r_time[k] + " ");
+       output.print(r_time[k] + " ");
     }
     
     System.out.println("\n");
+    output.println("\n");
     
     trial_num +=1;
     
+    output.flush(); // Writes the remaining data to the file
+    
     // TODO: Change to 13 for real test
-    if (stage_num == 2 && trial_num > 5){
+    if (stage_num == 2 && trial_num > 13){
       System.out.println("--------- Stage 2: Stop Hebb repetition learning task ---------");
+      output.println("--------- Stage 2: Stop Hebb repetition learning task ---------");
       stage_num = 3;
+      output.flush(); // Writes the remaining data to the file
+      output.close(); // Finishes the file
       delay(1000);
       exit();
     }
@@ -221,9 +300,19 @@ void restart_level(){
           System.out.println("--------- Stage 1: Stop word span test ---------");
           System.out.println("wrong_time: " + wrong_time);
           System.out.println("current number: " + number);
+    
+          output.println("--------- Stage 1: Stop word span test ---------");
+          output.println("wrong_time: " + wrong_time);
+          output.println("current number: " + number);
+          
           starting_num = (number+1);
           System.out.println("starting number: " + starting_num );
+          System.out.println();
+          output.println("starting number: " + starting_num );
+          output.println();      
+          
           System.out.println("--------- Stage 2: Start Hebb repetition learning task ---------");
+          output.println("--------- Stage 2: Start Hebb repetition learning task ---------");
           
           stage_num = 2;
           trial_num = 1;
@@ -267,7 +356,7 @@ void update(int x, int y) {
   
   for (int i = 0; i< number; i ++){
     
-    img = loadImage(pic_data[tar_ans[i]]);
+    img = loadImage(pic_data[show_list[i]]);
     
     if (contains(ans, i+1) == false){
         
@@ -293,7 +382,7 @@ void update(int x, int y) {
     rect(rectX, rectY, rectSize, rectSize);
     
       if (ans[i] != 0){
-        img = loadImage(pic_data[tar_ans[ans[i]-1]]);
+        img = loadImage(pic_data[show_list[ans[i]-1]]);
         image(img, rectX+5, rectY+5, circleSize-10, circleSize-10);
     }
     
@@ -320,9 +409,9 @@ void mousePressed() {
     p_mil = mil;
     clicked_list[i] = option;
     
-    textFont(f,16);                  // STEP 3 Specify font to be used
-    fill(0);                         // STEP 4 Specify font color 
-    text(str(tar_ans[option-1]),(width/2-rectSize/2-float(number)/2.0*(rectSize/5+rectSize))+(20+rectSize)*(click_num)+rectSize/2,rectY-rectSize/2);   // STEP 5 Display Text
+    //textFont(f,16);                  
+    //fill(0);                          
+    //text(str(tar_ans[option-1]),(width/2-rectSize/2-float(number)/2.0*(rectSize/5+rectSize))+(20+rectSize)*(click_num)+rectSize/2,rectY-rectSize/2);   // STEP 5 Display Text
     
     click_num += 1;
     i += 1;
